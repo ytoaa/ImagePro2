@@ -368,7 +368,6 @@ void CImagePro2View::OnClosing()
 {
 	CImagePro2Doc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
-
 	if (pDoc->inputImg == NULL) return;
 	pDoc->Closing();
 	viewMode = TWO_IMAGES;
