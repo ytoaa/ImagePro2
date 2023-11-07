@@ -53,13 +53,15 @@
 #define ID_32791                        32791
 #define ID_OPENING                      32792
 #define ID_CLOSING                      32793
+#define ID_32794                        32794
+#define ID_GEOMETRY_ZOOMIN_PIXEL_COPY   32795
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32794
+#define _APS_NEXT_COMMAND_VALUE         32796
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

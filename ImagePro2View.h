@@ -55,6 +55,7 @@ public:
 	afx_msg void OnDilation();
 	afx_msg void OnOpening();
 	afx_msg void OnClosing();
+	afx_msg void OnGeometryZoominPixelCopy();
 };
 
 #ifndef _DEBUG  // ImagePro2View.cpp의 디버그 버전

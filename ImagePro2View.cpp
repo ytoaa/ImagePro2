@@ -18,6 +18,7 @@
 #endif
 #define TWO_IMAGES 1
 #define THREE_IMAGES 2
+#define TWO_IMAGES_SCALED 4
 
 // CImagePro2View
 
@@ -39,6 +40,7 @@ BEGIN_MESSAGE_MAP(CImagePro2View, CScrollView)
 	ON_COMMAND(ID_DILATION, &CImagePro2View::OnDilation)
 	ON_COMMAND(ID_OPENING, &CImagePro2View::OnOpening)
 	ON_COMMAND(ID_CLOSING, &CImagePro2View::OnClosing)
+	ON_COMMAND(ID_GEOMETRY_ZOOMIN_PIXEL_COPY, &CImagePro2View::OnGeometryZoominPixelCopy)
 END_MESSAGE_MAP()
 
 // CImagePro2View 생성/소멸
@@ -372,5 +374,17 @@ void CImagePro2View::OnClosing()
 	pDoc->Closing();
 	viewMode = TWO_IMAGES;
 	Invalidate(FALSE);
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+}
+
+
+void CImagePro2View::OnGeometryZoominPixelCopy()
+{
+	CImagePro2Doc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (pDoc->inputImg == NULL) return;
+	pDoc->GeometryZoominPixelCopy();
+
+	viewMode = TWO_IMAGES_SCALED;
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
 }

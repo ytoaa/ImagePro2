@@ -34,6 +34,7 @@ CImagePro2Doc::CImagePro2Doc() noexcept
 	inputImg = NULL;
 	inputImg2 = NULL;
 	resultImg = NULL;
+	gResultImg = NULL;
 
 }
 
@@ -555,4 +556,11 @@ void CImagePro2Doc::Closing()
 
 	CopyResultToInput();
 	Erosion();
+}
+
+
+void CImagePro2Doc::GeometryZoominPixelCopy()
+{	
+
+	// TODO: 여기에 구현 코드 추가.
 }
