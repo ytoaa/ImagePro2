@@ -55,13 +55,25 @@
 #define ID_CLOSING                      32793
 #define ID_32794                        32794
 #define ID_GEOMETRY_ZOOMIN_PIXEL_COPY   32795
+#define ID_32796                        32796
+#define ID_GEOMETRY_ZOOMIN_INTERPOLATION 32797
+#define ID_32798                        32798
+#define ID_GEOMETRY_ZOOMIN_SUBSAMPLING  32799
+#define ID_32800                        32800
+#define ID_GEOMETRY_ZOOMIN_AVG          32801
+#define ID_32802                        32802
+#define ID_GEOMETRY_ROTATE              32803
+#define ID_32804                        32804
+#define ID_GEOMETRY_MIRROR              32805
+#define ID_32806                        32806
+#define ID_GEOMETRY_FLIP                32807
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32796
+#define _APS_NEXT_COMMAND_VALUE         32808
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

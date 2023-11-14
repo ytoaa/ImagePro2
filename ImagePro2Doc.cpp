@@ -561,6 +561,191 @@ void CImagePro2Doc::Closing()
 
 void CImagePro2Doc::GeometryZoominPixelCopy()
 {	
+	int i, y, x;
+	gImageWidth = imageWidth * 3;
+	gImageHeight = imageHeight * 3;
+	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
+		for (i = 0; i < gImageHeight; i++) {
+			gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
+	}
+	for (y = 0; y < gImageHeight; y++)
+		for (x = 0; x < gImageWidth; x++)
+			gResultImg[y][x] = inputImg[y / 3][x / 3];
+	// TODO: 여기에 구현 코드 추가.
+}
 
+
+void CImagePro2Doc::GeometryZoominInterpolation()
+{
+	// TODO: 여기에 구현 코드 추가.
+	int i, y, x;
+	float src_x, src_y;
+	float alpha, beta;
+	int scale_x, scale_y;
+	int E, F;
+	int Ax, Ay, Bx, By, Cx, Cy, Dx, Dy;
+	scale_x = 3;
+	scale_y = 3;
+	gImageWidth = imageWidth * scale_x;
+	gImageHeight = imageHeight * scale_y;
+	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
+	for (i = 0; i < gImageHeight; i++) {
+		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
+	}
+	for (y = 0; y < gImageHeight; y++)
+		for (x = 0; x < gImageWidth; x++) {
+			src_x = x / (float)scale_x;
+			src_y = y / (float)scale_y;
+			alpha = src_x - x / scale_x;
+			beta = src_y - y / scale_y;
+			Ax = x / scale_x;
+			Ay = y / scale_y;
+			Bx = Ax + 1;
+			By = Ay;
+			Cx = Ax;
+			Cy = Ay + 1;
+			Dx = Ax + 1;
+			Dy = Ay + 1;
+			if (Bx > imageWidth - 1) Bx = imageWidth - 1;
+			if (Dx > imageWidth - 1) Bx = imageWidth - 1;
+			if (Cy > imageWidth - 1) Cy = imageHeight - 1;
+			if (Dy > imageWidth - 1) Dy = imageHeight - 1;
+
+			E = (int)(inputImg[Ay][Ax] * (1 - alpha) + inputImg[By][Bx] * alpha);
+			F = (int)(inputImg[Cy][Cx] * (1 - alpha) + inputImg[Dy][Dx] * alpha);
+
+			gResultImg[y][x] = (unsigned char)(E * (1 - beta) + F * beta);
+		}
+	// TODO: 여기에 구현 코드 추가.
+}
+
+
+void CImagePro2Doc::GeometryZoominSubsampling()
+{
+	// TODO: 여기에 구현 코드 추가.
+	int i, y, x;
+	int src_x, src_y;
+	int scale_x, scale_y;
+	scale_x = 3;
+	scale_y = 3;
+	gImageWidth = imageWidth / scale_x;
+	gImageHeight = imageHeight / scale_y;
+	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
+	for (i = 0; i < gImageHeight; i++) {
+		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
+	}
+	for (y = 0; y < gImageHeight; y++)
+		for (x = 0; x < gImageWidth; x++) {
+			src_x = y * scale_y;
+			src_y = x * scale_x;
+			if (src_x > imageWidth - 1)src_x = imageWidth - 1;
+			if (src_y > imageHeight - 1)src_y = imageHeight - 1;
+
+			gResultImg[y][x] = inputImg[src_y][src_x];
+		}
+	// TODO: 여기에 구현 코드 추가.
+}
+
+
+void CImagePro2Doc::GeometryZoominAvg()
+{
+	// TODO: 여기에 구현 코드 추가.
+	int i, y, x,j;
+	int sum;
+	int src_x, src_y;
+	int scale_x, scale_y;
+	scale_x = 3;
+	scale_y = 3;
+	gImageWidth = imageWidth / scale_x+1;
+	gImageHeight = imageHeight / scale_y+1;
+	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
+	for (i = 0; i < gImageHeight; i++) {
+		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
+	}
+	for (y = 0; y < imageHeight; y=y+scale_y)
+		for (x = 0; x < imageWidth; x=x+scale_x) {
+
+			sum = 0;
+			for (i = 0; i < scale_y; i++)
+				for (j = 0; j < scale_x; j++) {
+					src_x = x + j;
+					src_y = y + i;
+
+					if (src_x > imageWidth - 1) src_x = imageWidth - 1;
+					if (src_y > imageHeight - 1) src_y = imageHeight - 1;
+					sum += inputImg[src_y][src_x];
+				}
+			sum = sum / (scale_x * scale_y);
+			if (sum > 255) sum = 255;
+			if (sum < 0) sum = 0;
+
+			gResultImg[y / scale_y][x / scale_x] = (unsigned char)sum;
+		}
+	// TODO: 여기에 구현 코드 추가.
+	// TODO: 여기에 구현 코드 추가.
+}
+
+#define PI 3.14159
+void CImagePro2Doc::GeometryRotate()
+{
+	int y, x, x_source, y_source, Cx, Cy;
+	float angle;
+	int Oy;
+	int i, xdiff, ydiff;
+	Oy = imageHeight - 1;
+	angle = PI / 180.0 * 30.0;
+	Cx = imageWidth / 2;
+	Cy = imageHeight / 2;
+
+	gImageWidth = (int)(imageHeight * cos(PI / 2.0 - angle) + imageWidth * cos(angle));
+	gImageHeight = (int)(imageHeight * cos(angle) + imageWidth * cos(PI / 2.0 - angle));
+
+	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
+
+	for (i = 0; i < gImageHeight; i++) {
+		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
+
+	}
+	xdiff = (gImageWidth - imageWidth) / 2;
+	ydiff = (gImageHeight - imageHeight) / 2;
+	for (y = -ydiff; y < gImageHeight - ydiff; y++)
+		for (x = -xdiff; x < gImageWidth - xdiff; x++)
+		{
+			x_source = (int)(((Oy - y) - Cy) * sin(angle) + (x - Cx) * cos(angle) + Cx);
+			y_source = (int)(((Oy - y) - Cy) * cos(angle) - (x - Cx) * sin(angle) + Cy);
+
+			y_source = Oy - y_source;
+
+			if (x_source < 0 || x_source > imageWidth - 1 ||
+				y_source < 0 || y_source > imageHeight - 1)
+				gResultImg[y + ydiff][x + xdiff] = 255;
+			else
+				gResultImg[y + ydiff][x + xdiff] = inputImg[y_source][x_source];
+
+		}
+	// TODO: 여기에 구현 코드 추가.
+
+}
+
+
+void CImagePro2Doc::GeometryMirror()
+{
+
+	int y, x;
+
+	for (y = 0; y < imageHeight; y++)
+		for (x = 0; x < imageWidth; x++)
+			resultImg[y][x] = inputImg[y][imageWidth - 1 - x];
+	// TODO: 여기에 구현 코드 추가.
+}
+
+
+void CImagePro2Doc::GeometryFlip()
+{
+	int y, x;
+
+	for (y = 0; y < imageHeight; y++)
+		for (x = 0; x < imageWidth; x++)
+			resultImg[imageHeight-1-y][x] = inputImg[y][x];
 	// TODO: 여기에 구현 코드 추가.
 }

@@ -41,6 +41,12 @@ BEGIN_MESSAGE_MAP(CImagePro2View, CScrollView)
 	ON_COMMAND(ID_OPENING, &CImagePro2View::OnOpening)
 	ON_COMMAND(ID_CLOSING, &CImagePro2View::OnClosing)
 	ON_COMMAND(ID_GEOMETRY_ZOOMIN_PIXEL_COPY, &CImagePro2View::OnGeometryZoominPixelCopy)
+	ON_COMMAND(ID_GEOMETRY_ZOOMIN_INTERPOLATION, &CImagePro2View::OnGeometryZoominInterpolation)
+	ON_COMMAND(ID_GEOMETRY_ZOOMIN_SUBSAMPLING, &CImagePro2View::OnGeometryZoominSubsampling)
+	ON_COMMAND(ID_GEOMETRY_ZOOMIN_AVG, &CImagePro2View::OnGeometryZoominAvg)
+	ON_COMMAND(ID_GEOMETRY_ROTATE, &CImagePro2View::OnGeometryRotate)
+	ON_COMMAND(ID_GEOMETRY_MIRROR, &CImagePro2View::OnGeometryMirror)
+	ON_COMMAND(ID_GEOMETRY_FLIP, &CImagePro2View::OnGeometryFlip)
 END_MESSAGE_MAP()
 
 // CImagePro2View 생성/소멸
@@ -88,6 +94,14 @@ void CImagePro2View::OnDraw(CDC* pDC)
 						RGB(pDoc->resultImg[y][x],
 							pDoc->resultImg[y][x],
 							pDoc->resultImg[y][x]));
+		}
+		else if (viewMode == TWO_IMAGES_SCALED) {
+			for (int y = 0; y < pDoc->gImageHeight; y++)
+				for (int x = 0; x < pDoc->gImageWidth; x++)
+					pDC->SetPixel(x + pDoc->imageWidth+30, y,
+						RGB(pDoc->gResultImg[y][x],
+							pDoc->gResultImg[y][x],
+							pDoc->gResultImg[y][x]));
 		}
 		else {
 			for (int y = 0; y < pDoc->imageHeight; y++)
@@ -386,5 +400,85 @@ void CImagePro2View::OnGeometryZoominPixelCopy()
 	pDoc->GeometryZoominPixelCopy();
 
 	viewMode = TWO_IMAGES_SCALED;
+	Invalidate(FALSE);
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+}
+
+
+void CImagePro2View::OnGeometryZoominInterpolation()
+{
+	CImagePro2Doc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (pDoc->inputImg == NULL) return;
+	pDoc->GeometryZoominInterpolation();
+
+	viewMode = TWO_IMAGES_SCALED;
+	Invalidate(FALSE);
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+}
+
+
+void CImagePro2View::OnGeometryZoominSubsampling()
+{
+	CImagePro2Doc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (pDoc->inputImg == NULL) return;
+	pDoc->GeometryZoominSubsampling();
+
+	viewMode = TWO_IMAGES_SCALED;
+	Invalidate(FALSE);
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+}
+
+
+void CImagePro2View::OnGeometryZoominAvg()
+{
+	CImagePro2Doc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (pDoc->inputImg == NULL) return;
+	pDoc->GeometryZoominAvg();
+
+	viewMode = TWO_IMAGES_SCALED;
+	Invalidate(FALSE);
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+}
+
+
+void CImagePro2View::OnGeometryRotate()
+{
+	CImagePro2Doc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (pDoc->inputImg == NULL) return;
+	pDoc->GeometryRotate();
+
+	viewMode = TWO_IMAGES_SCALED;
+	Invalidate(FALSE);
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+}
+
+
+void CImagePro2View::OnGeometryMirror()
+{
+	CImagePro2Doc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (pDoc->inputImg == NULL) return;
+	pDoc->GeometryMirror();
+
+	viewMode = TWO_IMAGES;
+	Invalidate(FALSE);
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+}
+
+
+void CImagePro2View::OnGeometryFlip()
+{
+	CImagePro2Doc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (pDoc->inputImg == NULL) return;
+	pDoc->GeometryFlip();
+
+	viewMode = TWO_IMAGES;
+	Invalidate(FALSE);
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
 }

@@ -69,4 +69,10 @@ public:
 	void CopyResultToInput();
 	void Closing();
 	void GeometryZoominPixelCopy();
+	void GeometryZoominInterpolation();
+	void GeometryZoominSubsampling();
+	void GeometryZoominAvg();
+	void GeometryRotate();
+	void GeometryMirror();
+	void GeometryFlip();
 };

@@ -56,6 +56,12 @@ public:
 	afx_msg void OnOpening();
 	afx_msg void OnClosing();
 	afx_msg void OnGeometryZoominPixelCopy();
+	afx_msg void OnGeometryZoominInterpolation();
+	afx_msg void OnGeometryZoominSubsampling();
+	afx_msg void OnGeometryZoominAvg();
+	afx_msg void OnGeometryRotate();
+	afx_msg void OnGeometryMirror();
+	afx_msg void OnGeometryFlip();
 };
 
 #ifndef _DEBUG  // ImagePro2View.cpp의 디버그 버전
