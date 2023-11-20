@@ -4,7 +4,7 @@
 
 #pragma once
 
-class CChildFrame : public CMDIChildWndEx
+class CChildFrame : public CMDIChildWnd
 {
 	DECLARE_DYNCREATE(CChildFrame)
 public:
@@ -12,7 +12,7 @@ public:
 
 // 특성입니다.
 protected:
-	CSplitterWndEx m_wndSplitter;
+	CSplitterWnd m_wndSplitter;
 public:
 
 // 작업입니다.

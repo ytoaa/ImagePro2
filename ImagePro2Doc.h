@@ -14,16 +14,6 @@ protected: // serialization에서만 만들어집니다.
 
 // 특성입니다.
 public:
-	unsigned char** inputImg;
-	unsigned char** inputImg2;
-	unsigned char** resultImg;
-	int imageWidth;
-	int imageHeight;
-	int depth;
-
-	int gImageWidth;
-	int gImageHeight;
-	unsigned char** gResultImg;
 
 // 작업입니다.
 public:
@@ -43,6 +33,8 @@ public:
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
+	int LoadImageFile(CArchive& ar);
+	void LoadSecondImageFile(CArchive& ar);
 #endif
 
 protected:
@@ -56,23 +48,18 @@ protected:
 	void SetSearchContent(const CString& value);
 #endif // SHARED_HANDLERS
 public:
-	void LoadImageFile(CArchive& ar);
-	void LoadTwoImages();
-	void PixelAdd();
-	void PixelTwoImageAdd();
-	void RegionSobel();
-	void Convolve(unsigned char** inputImg, unsigned char** resultImg, int cols, int rows, float mask[][3] , int bias, int depth);
-	void RegionMedian();
-	void Erosion();
-	void Dilation();
-	void Opening();
-	void CopyResultToInput();
-	void Closing();
-	void GeometryZoominPixelCopy();
-	void GeometryZoominInterpolation();
-	void GeometryZoominSubsampling();
-	void GeometryZoominAvg();
-	void GeometryRotate();
-	void GeometryMirror();
-	void GeometryFlip();
+	unsigned char **inputimg; //[y][x]형식으로 나타낸다
+	unsigned char **inputimg2;
+	unsigned char **resultimg; //[y][x]형식으로 나타낸다
+
+	int ImageWidth;
+	int ImageHeight;
+	int depth; //1=흑백,3=컬러
+
+	int gImageWidth;
+	int gImageHeight;
+	unsigned char** gresultimg; //[y][x]
+
+	int LoadImageFile();
+	void LoadSecondImageFile();
 };

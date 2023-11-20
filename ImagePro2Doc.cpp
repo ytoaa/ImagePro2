@@ -30,16 +30,43 @@ END_MESSAGE_MAP()
 
 CImagePro2Doc::CImagePro2Doc() noexcept
 {
+	inputimg = NULL;
+	inputimg2 = NULL;
+	resultimg = NULL;
+
+	gresultimg = NULL;
 	// TODO: 여기에 일회성 생성 코드를 추가합니다.
-	inputImg = NULL;
-	inputImg2 = NULL;
-	resultImg = NULL;
-	gResultImg = NULL;
 
 }
 
 CImagePro2Doc::~CImagePro2Doc()
 {
+	int i;
+	if (inputimg != NULL)
+	{
+		for (i = 0; i < ImageHeight; i++)
+			free(inputimg[i]);
+		free(inputimg);
+	}
+	if (resultimg != NULL)
+	{
+		for (i = 0; i < ImageHeight; i++)
+			free(resultimg[i]);
+		free(resultimg);
+	}
+	if (inputimg2 != NULL)
+	{
+		for (i = 0; i < ImageHeight; i++)
+			free(inputimg2[i]);
+		free(inputimg2);
+	}
+	if (gresultimg != NULL)
+	{
+		for (i = 0; i < gImageHeight; i++)
+			free(gresultimg[i]);
+		free(gresultimg);
+	}
+
 }
 
 BOOL CImagePro2Doc::OnNewDocument()
@@ -67,6 +94,7 @@ void CImagePro2Doc::Serialize(CArchive& ar)
 	else
 	{
 		LoadImageFile(ar);
+
 		// TODO: 여기에 로딩 코드를 추가합니다.
 	}
 }
@@ -141,611 +169,102 @@ void CImagePro2Doc::Dump(CDumpContext& dc) const
 
 
 // CImagePro2Doc 명령
-
-
-void CImagePro2Doc::LoadImageFile(CArchive& ar)
+int CImagePro2Doc::LoadImageFile(CArchive& ar)
 {
-	int i, maxVaule;
+	{
+		int maxValue, i;
+		char type[16], buf[256];
+		CFile* fp = ar.GetFile();
+		CString fname = fp->GetFilePath();
+
+		//strcmp(strchr(fname, '.'), ".ppm");	// == 0 => 확장자가 ppm
+		if (!strcmp(strchr(fname, '.'), ".ppm") || !strcmp(strchr(fname, '.'), ".PPM") ||
+			!strcmp(strchr(fname, '.'), ".pgm") || !strcmp(strchr(fname, '.'), ".PGM")) {
+
+			ar.ReadString(type, 15);
+
+			do {
+				ar.ReadString(buf, 255);
+			} while (buf[0] == '#');
+			sscanf(buf, "%d %d", &ImageWidth, &ImageHeight);
+
+			do {
+				ar.ReadString(buf, 255);
+			} while (buf[0] == '#');
+			sscanf(buf, "%d", &maxValue);
+
+			if (!strcmp(type, "P5")) depth = 1;
+			else depth = 3;
+		}
+		else if (!strcmp(strchr(fname, '.'), ".raw") || !strcmp(strchr(fname, '.'), ".RAW")) {
+			ImageWidth = 256;
+			ImageHeight = 256;
+			depth = 1;
+		}
+
+		//메모리 할당
+		inputimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
+		resultimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
+		for (i = 0; i < ImageHeight; i++) {
+			inputimg[i] = (unsigned char*)malloc(ImageWidth * depth);
+			resultimg[i] = (unsigned char*)malloc(ImageWidth * depth);
+		}
+
+		//파일에서 읽어서 저장
+		for (i = 0; i < ImageHeight; i++)
+			ar.Read(inputimg[i], ImageWidth * depth);
+
+		return 0;
+	}
+}
+
+
+void CImagePro2Doc::LoadSecondImageFile(CArchive& ar)
+{
+	int w, h, d;
+	int maxValue, i;
 	char type[16], buf[256];
 	CFile* fp = ar.GetFile();
 	CString fname = fp->GetFilePath();
-	const char* fileExt = strrchr(fname, '.');
 
-	if (fileExt == nullptr) {
-		AfxMessageBox("파일 확장자를 찾을 수 없습니다.");
-		return;
-	}
+	if (!strcmp(strchr(fname, '.'), ".ppm") || !strcmp(strchr(fname, '.'), ".PPM") ||
+		!strcmp(strchr(fname, '.'), ".pgm") || !strcmp(strchr(fname, '.'), ".PGM")) {
 
-	if (strcmp(fileExt, ".bmp") == 0 || strcmp(fileExt, ".BMP") == 0)
-	{
-		BITMAPFILEHEADER bf;
-		BITMAPINFOHEADER bi;
-
-		fp->Read(&bf, sizeof(BITMAPFILEHEADER));
-		fp->Read(&bi, sizeof(BITMAPINFOHEADER));
-
-		imageWidth = bi.biWidth;
-		imageHeight = bi.biHeight;
-		depth = bi.biBitCount / 8;
-
-		if (depth != 1 && depth != 3 && depth != 4) {
-			AfxMessageBox("지원하지 않는 BMP 파일 형식입니다.");
-			return;
-		}
-		if (depth == 4) {
-			depth = 3;  // 4-byte BMP images are typically RGBA, convert to RGB
-		}
-
-		// BMP 이미지 데이터는 아래에서 위로 저장되므로 뒤집어서 읽어야 함
-		inputImg = (unsigned char**)malloc(imageHeight * sizeof(unsigned char*));
-		resultImg = (unsigned char**)malloc(imageHeight * sizeof(unsigned char*));
-
-		int rowSize = ((imageWidth * depth + 3) / 4) * 4;  // Adjust for padding
-
-		for (i = 0; i < imageHeight; i++) {
-			inputImg[i] = (unsigned char*)malloc(rowSize);
-			resultImg[i] = (unsigned char*)malloc(rowSize);
-			fp->Seek(bf.bfOffBits + (imageHeight - i - 1) * rowSize, CFile::begin);
-			fp->Read(inputImg[i], rowSize);
-
-			// BGR to RGB
-			for (int j = 0; j < imageWidth * depth; j += depth) {
-				unsigned char temp = inputImg[i][j];
-				inputImg[i][j] = inputImg[i][j + 2];
-				inputImg[i][j + 2] = temp;
-			}
-		}
-	}
-	else if (strcmp(fileExt, ".ppm") == 0 || strcmp(fileExt, ".PPM") == 0 || strcmp(fileExt, ".PGM") == 0 || strcmp(fileExt, ".pgm") == 0)
-	{
 		ar.ReadString(type, 15);
-		do {
-			ar.ReadString(buf, 255);
-		} while (buf[0] == '#');
-		sscanf_s(buf, "%d %d", &imageWidth, &imageHeight);
 
 		do {
 			ar.ReadString(buf, 255);
 		} while (buf[0] == '#');
-		sscanf_s(buf, "%d", &maxVaule);
+		sscanf(buf, "%d %d", &w, &h);
 
-		if (strcmp(type, "P5") == 0) depth = 1;
-		else depth = 3;
+		do {
+			ar.ReadString(buf, 255);
+		} while (buf[0] == '#');
+		sscanf(buf, "%d", &maxValue);
+
+		if (!strcmp(type, "P5")) d = 1;
+		else d = 3;
 	}
-	else if (strcmp(fileExt, ".raw") == 0 || strcmp(fileExt, ".RAW") == 0)
-	{
-		if (fp->GetLength() != 256 * 256) {
-			AfxMessageBox("256x256 크기의 파일만 사용 가능합니다.");
-			return;
-		}
-		imageWidth = 256;
-		imageHeight = 256;
-		depth = 1;
+	else if (!strcmp(strchr(fname, '.'), ".raw") || !strcmp(strchr(fname, '.'), ".RAW")) {
+		w = 256;
+		h = 256;
+		d = 1;
 	}
-	else
-	{
-		// 다른 파일 유형에 대한 처리 코드
-		AfxMessageBox("지원하지 않는 파일 형식입니다.");
+
+	if (ImageWidth != w || ImageHeight != h || depth != d) {
+		AfxMessageBox("두번째 파일의 width,height,depth가 다르면 읽을 수 없습니다.");
 		return;
 	}
-	if (inputImg == nullptr) {
-		inputImg = (unsigned char**)malloc(imageHeight * sizeof(unsigned char*));
-		resultImg = (unsigned char**)malloc(imageHeight * sizeof(unsigned char*));
 
-		for (i = 0; i < imageHeight; i++) {
-			inputImg[i] = (unsigned char*)malloc(imageWidth * depth);
-			resultImg[i] = (unsigned char*)malloc(imageWidth * depth);
-		}
+	//메모리 할당
+	inputimg2 = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
+	for (i = 0; i < ImageHeight; i++) {
+		inputimg2[i] = (unsigned char*)malloc(ImageWidth * depth);
 	}
 
-	// 나머지 코드는 여기에 두면 중복 코드를 줄일 수 있습니다.
-
-	if (strcmp(fileExt, ".bmp") != 0) {
-		// BMP 파일이 아닌 경우에만 실행
-		for (i = 0; i < imageHeight; i++)
-			ar.Read(inputImg[i], imageWidth * depth);
-	}
-}
-
-
-
-
-void CImagePro2Doc::LoadTwoImages()
-{
-	CFile file;
-	CFileDialog dlg(TRUE);
-
-	AfxMessageBox("Select the First Image");
-
-	if (dlg.DoModal() == IDOK) {
-		file.Open(dlg.GetPathName(), CFile::modeRead);
-		file.Read(inputImg, 256 * 256);
-		file.Close();
-		// TODO: 여기에 구현 코드 추가.
-	}
-}
-
-
-void CImagePro2Doc::PixelAdd()
-{
-	int value;
-
-	for(int y =0; y<256; y++)
-		for (int x = 0; x < 256; x++) {
-			value = inputImg[y][x] + 100;
-			if (value > 255) resultImg[y][x] = 255;
-			else resultImg[y][x] = value;
-		}
-	// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::PixelTwoImageAdd()
-{
-	int vaule;
-
-	LoadTwoImages();
-
-	for (int y = 0; y < 256; y++)
-		for (int x = 0; x < 256; x++) {
-			vaule = inputImg[y][x] + inputImg2[y][x];
-			if (vaule > 255) resultImg[y][x] = 255;
-			else resultImg[y][x] = vaule;
-		}
-	// TODO: 여기에 구현 코드 추가.
-}
-
-#include <math.h>
-void CImagePro2Doc::RegionSobel()
-{
-	int i, x, y, sum;
-	float mask1[3][3] = { 1,0,-1,2,0,-2,1,0,-1 };
-	float mask2[3][3] = { -1,-2,-1,0,0,0,1,2,1 };
-	unsigned char** Er, ** Ec;
-
-	Er = (unsigned char**)malloc((imageHeight) * sizeof(unsigned char*));
-	Ec = (unsigned char**)malloc((imageHeight) * sizeof(unsigned char*));
-	// TODO: 여기에 구현 코드 추가.
-
-	for (i = 0; i < imageHeight; i++) {
-		Er[i] = (unsigned char*)malloc(imageWidth * depth);
-		Ec[i] = (unsigned char*)malloc(imageWidth * depth);
-	}
-	Convolve(inputImg, Er, imageWidth, imageHeight, mask1, 0, depth);
-	Convolve(inputImg, Ec, imageWidth, imageHeight, mask2, 0, depth);
-
-	for (y=0;y<imageHeight;y++)
-		for (x = 0; x < imageWidth * depth; x++) {
-			sum = sqrt(Er[y][x] * Er[y][x] + Ec[y][x] * Ec[y][x]);
-			if (sum > 255) sum = 255;
-			if (sum < 0) sum = 0;
-			resultImg[y][x] = (unsigned char)sum;
-		}
-}
-
-
-
-void CImagePro2Doc::Convolve(unsigned char** inputImg, unsigned char** resultImg, int cols, int rows, float mask[][3] , int bias, int depth)
-{
-	// TODO: 여기에 구현 코드 추가.
-	int x, y;
-	int i, j;
-	int red, green,blue;
-	int sum;
-	unsigned char** tmpImg;
-
-	tmpImg = (unsigned char**)malloc((imageHeight + 2) * sizeof(unsigned char*));
-
-	for (i = 0; i < imageHeight + 2;i++)
-		tmpImg[i] = (unsigned char*)malloc((imageWidth + 2) * depth);
-
-	for (y = 0; y < imageHeight + 2; y++)
-		for (x = 0; x < (imageWidth + 2) * depth; x++)
-			tmpImg[y][x] = 0;
-
-	for (y = 1; y < imageHeight + 1; y++)
-		for (x = 1; x < imageWidth + 1; x++)
-			if (depth == 1) tmpImg[y][x] = inputImg[y - 1][x - 1];
-			else if (depth == 3) {
-				tmpImg[y][3 * x] = inputImg[y - 1][3 * (x - 1)];
-				tmpImg[y][3 * x + 1] = inputImg[y - 1][3 * (x - 1) + 1];
-				tmpImg[y][3 * x + 2] = inputImg[y - 1][3 * (x - 1) + 2];
-			}
-	for (y=0;y<imageHeight;y++) 
-		for (x = 0; x < imageWidth; x++) {
-			if (depth == 1) {
-				sum = 0;
-				for (i = 0; i < 3; i++)
-					for (j = 0; j < 3; j++)
-						sum += (int)(tmpImg[y + i][x + j] * mask[i][j]);
-				if (sum > 255) sum = 255;
-				if (sum < 0) sum = 0;
-				resultImg[y][x] = (unsigned char) sum;
-			}
-			else if (depth == 3) {
-				red = 0;
-				green = 0;
-				blue = 0;
-
-				for (i=0;i<3;i++)
-					for (j = 0; j < 3; j++) {
-						red += (int)(tmpImg[y + i][3 * (x + j)] * mask[i][j]);
-						green += (int)(tmpImg[y + i][3 * (x + j)+1] * mask[i][j]);
-						blue += (int)(tmpImg[y + i][3 * (x + j)+2] * mask[i][j]);
-					}
-				if (red > 255) red = 255;
-				if (red < 0) red = 0;
-				if (green > 255) green = 255;
-				if (green < 0) green = 0;
-				if (blue > 255) blue = 255;
-				if (blue < 0) blue = 0;
-
-				resultImg[y][3 * x] = (unsigned char) red;
-				resultImg[y][3 * x+1] = (unsigned char) green;
-				resultImg[y][3 * x+2] = (unsigned char) blue;
-			}
-		}
-	for (i = 0; i < imageHeight + 2; i++) free(tmpImg[i]);
-	free(tmpImg);
-
-		// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::RegionMedian() {
-	int i, j, temp, x, y;
-	int n[9];
-
-	for (y = 1; y < imageHeight - 1; y++) {
-		for (x = 1; x < imageWidth - 1; x++) {
-			if (depth == 1) {
-				n[0] = inputImg[y - 1][x - 1];
-				n[1] = inputImg[y - 1][x];
-				n[2] = inputImg[y - 1][x + 1];
-				n[3] = inputImg[y][x - 1];
-				n[4] = inputImg[y][x];
-				n[5] = inputImg[y][x + 1];
-				n[6] = inputImg[y + 1][x - 1];
-				n[7] = inputImg[y + 1][x];
-				n[8] = inputImg[y + 1][x + 1];
-
-				for (i = 8; i > 0; i--) {
-					for (j = 0; j < i; j++) {
-						if (n[j] > n[j + 1]) {
-							temp = n[j + 1];
-							n[j + 1] = n[j];
-							n[j] = temp;
-						}
-					}
-				}
-
-				resultImg[y][x] = n[4];
-			}
-			else if (depth == 3) { // RGB 처리 추가
-				int r[9], g[9], b[9];
-				for (int k = 0; k < 9; k++) {
-					int row = k / 3;
-					int col = k % 3;
-					r[k] = inputImg[y - 1 + row][3 * (x - 1 + col)];
-					g[k] = inputImg[y - 1 + row][3 * (x - 1 + col) + 1];
-					b[k] = inputImg[y - 1 + row][3 * (x - 1 + col) + 2];
-				}
-
-				for (i = 8; i > 0; i--) {
-					for (j = 0; j < i; j++) {
-						if (r[j] > r[j + 1]) {
-							temp = r[j + 1];
-							r[j + 1] = r[j];
-							r[j] = temp;
-						}
-						if (g[j] > g[j + 1]) {
-							temp = g[j + 1];
-							g[j + 1] = g[j];
-							g[j] = temp;
-						}
-						if (b[j] > b[j + 1]) {
-							temp = b[j + 1];
-							b[j + 1] = b[j];
-							b[j] = temp;
-						}
-					}
-				}
-
-				resultImg[y][3 * x] = r[4];
-				resultImg[y][3 * x + 1] = g[4];
-				resultImg[y][3 * x + 2] = b[4];
-			}
-		}
-	}
-
-}
-
-
-
-
-void CImagePro2Doc::Erosion()
-{
-	// TODO: 여기에 구현 코드 추가.
-	int x, y, min;
-	for (y=1;y<imageHeight-1;y++)
-		for (x = 1; x < imageWidth - 1; x++) {
-			min = 255;
-			if (inputImg[y - 1][x - 1] < min) min = inputImg[y - 1][x - 1];
-			if (inputImg[y - 1][x] < min) min = inputImg[y - 1][x];
-			if (inputImg[y][x - 1] < min) min = inputImg[y][x - 1];
-			if (inputImg[y - 1][x + 1] < min) min = inputImg[y - 1][x + 1];
-			if (inputImg[y + 1][x - 1] < min) min = inputImg[y + 1][x - 1];
-			if (inputImg[y][x + 1] < min) min = inputImg[y][x + 1];
-			if (inputImg[y + 1][x] < min) min = inputImg[y + 1][x];
-			if (inputImg[y + 1][x + 1] < min) min = inputImg[y + 1][x + 1];
-			if (inputImg[y][x] < min) min = inputImg[y][x];
-
-			resultImg[y][x] = min;
-		}
-}
-
-
-void CImagePro2Doc::Dilation()
-{
-	int x, y, max;
-	for (y = 1; y < imageHeight - 1; y++)
-		for (x = 1; x < imageWidth - 1; x++) {
-			max = 0;
-			if (inputImg[y - 1][x - 1] > max) max = inputImg[y - 1][x - 1];
-			if (inputImg[y - 1][x] > max) max = inputImg[y - 1][x];
-			if (inputImg[y][x - 1] > max) max = inputImg[y][x - 1];
-			if (inputImg[y - 1][x + 1] > max) max = inputImg[y - 1][x + 1];
-			if (inputImg[y + 1][x - 1] > max) max = inputImg[y + 1][x - 1];
-			if (inputImg[y][x + 1] > max) max = inputImg[y][x + 1];
-			if (inputImg[y + 1][x] > max) max = inputImg[y + 1][x];
-			if (inputImg[y + 1][x + 1] > max) max = inputImg[y + 1][x + 1];
-			if (inputImg[y][x] > max) max = inputImg[y][x];
-
-			resultImg[y][x] = max;
-		}
-	// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::Opening()
-{
-	Erosion();
-	CopyResultToInput();
-	Erosion();
-
-	CopyResultToInput();
-	Erosion();
-
-	CopyResultToInput();
-	Dilation();
-
-	CopyResultToInput();
-	Dilation();
-
-	CopyResultToInput();
-	Dilation();
-	// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::CopyResultToInput()
-{
-	// TODO: 여기에 구현 코드 추가.
-	int x, y;
-	for (y = 0; y < imageHeight; y++)
-		for (x = 0; x < imageWidth; x++)
-			inputImg[y][x] = resultImg[y][x];
-}
-
-
-void CImagePro2Doc::Closing()
-{
-	// TODO: 여기에 구현 코드 추가.
-	Dilation();
-	CopyResultToInput();
-	Dilation();
-
-	CopyResultToInput();
-	Dilation();
-
-	CopyResultToInput();
-	Erosion();
-
-	CopyResultToInput();
-	Erosion();
-
-	CopyResultToInput();
-	Erosion();
-}
-
-
-void CImagePro2Doc::GeometryZoominPixelCopy()
-{	
-	int i, y, x;
-	gImageWidth = imageWidth * 3;
-	gImageHeight = imageHeight * 3;
-	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
-		for (i = 0; i < gImageHeight; i++) {
-			gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
-	}
-	for (y = 0; y < gImageHeight; y++)
-		for (x = 0; x < gImageWidth; x++)
-			gResultImg[y][x] = inputImg[y / 3][x / 3];
-	// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::GeometryZoominInterpolation()
-{
-	// TODO: 여기에 구현 코드 추가.
-	int i, y, x;
-	float src_x, src_y;
-	float alpha, beta;
-	int scale_x, scale_y;
-	int E, F;
-	int Ax, Ay, Bx, By, Cx, Cy, Dx, Dy;
-	scale_x = 3;
-	scale_y = 3;
-	gImageWidth = imageWidth * scale_x;
-	gImageHeight = imageHeight * scale_y;
-	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
-	for (i = 0; i < gImageHeight; i++) {
-		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
-	}
-	for (y = 0; y < gImageHeight; y++)
-		for (x = 0; x < gImageWidth; x++) {
-			src_x = x / (float)scale_x;
-			src_y = y / (float)scale_y;
-			alpha = src_x - x / scale_x;
-			beta = src_y - y / scale_y;
-			Ax = x / scale_x;
-			Ay = y / scale_y;
-			Bx = Ax + 1;
-			By = Ay;
-			Cx = Ax;
-			Cy = Ay + 1;
-			Dx = Ax + 1;
-			Dy = Ay + 1;
-			if (Bx > imageWidth - 1) Bx = imageWidth - 1;
-			if (Dx > imageWidth - 1) Bx = imageWidth - 1;
-			if (Cy > imageWidth - 1) Cy = imageHeight - 1;
-			if (Dy > imageWidth - 1) Dy = imageHeight - 1;
-
-			E = (int)(inputImg[Ay][Ax] * (1 - alpha) + inputImg[By][Bx] * alpha);
-			F = (int)(inputImg[Cy][Cx] * (1 - alpha) + inputImg[Dy][Dx] * alpha);
-
-			gResultImg[y][x] = (unsigned char)(E * (1 - beta) + F * beta);
-		}
-	// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::GeometryZoominSubsampling()
-{
-	// TODO: 여기에 구현 코드 추가.
-	int i, y, x;
-	int src_x, src_y;
-	int scale_x, scale_y;
-	scale_x = 3;
-	scale_y = 3;
-	gImageWidth = imageWidth / scale_x;
-	gImageHeight = imageHeight / scale_y;
-	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
-	for (i = 0; i < gImageHeight; i++) {
-		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
-	}
-	for (y = 0; y < gImageHeight; y++)
-		for (x = 0; x < gImageWidth; x++) {
-			src_x = y * scale_y;
-			src_y = x * scale_x;
-			if (src_x > imageWidth - 1)src_x = imageWidth - 1;
-			if (src_y > imageHeight - 1)src_y = imageHeight - 1;
-
-			gResultImg[y][x] = inputImg[src_y][src_x];
-		}
-	// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::GeometryZoominAvg()
-{
-	// TODO: 여기에 구현 코드 추가.
-	int i, y, x,j;
-	int sum;
-	int src_x, src_y;
-	int scale_x, scale_y;
-	scale_x = 3;
-	scale_y = 3;
-	gImageWidth = imageWidth / scale_x+1;
-	gImageHeight = imageHeight / scale_y+1;
-	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
-	for (i = 0; i < gImageHeight; i++) {
-		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
-	}
-	for (y = 0; y < imageHeight; y=y+scale_y)
-		for (x = 0; x < imageWidth; x=x+scale_x) {
-
-			sum = 0;
-			for (i = 0; i < scale_y; i++)
-				for (j = 0; j < scale_x; j++) {
-					src_x = x + j;
-					src_y = y + i;
-
-					if (src_x > imageWidth - 1) src_x = imageWidth - 1;
-					if (src_y > imageHeight - 1) src_y = imageHeight - 1;
-					sum += inputImg[src_y][src_x];
-				}
-			sum = sum / (scale_x * scale_y);
-			if (sum > 255) sum = 255;
-			if (sum < 0) sum = 0;
-
-			gResultImg[y / scale_y][x / scale_x] = (unsigned char)sum;
-		}
-	// TODO: 여기에 구현 코드 추가.
-	// TODO: 여기에 구현 코드 추가.
-}
-
-#define PI 3.14159
-void CImagePro2Doc::GeometryRotate()
-{
-	int y, x, x_source, y_source, Cx, Cy;
-	float angle;
-	int Oy;
-	int i, xdiff, ydiff;
-	Oy = imageHeight - 1;
-	angle = PI / 180.0 * 30.0;
-	Cx = imageWidth / 2;
-	Cy = imageHeight / 2;
-
-	gImageWidth = (int)(imageHeight * cos(PI / 2.0 - angle) + imageWidth * cos(angle));
-	gImageHeight = (int)(imageHeight * cos(angle) + imageWidth * cos(PI / 2.0 - angle));
-
-	gResultImg = (unsigned char**)malloc(gImageHeight * sizeof(unsigned char*));
-
-	for (i = 0; i < gImageHeight; i++) {
-		gResultImg[i] = (unsigned char*)malloc(gImageWidth * depth);
-
-	}
-	xdiff = (gImageWidth - imageWidth) / 2;
-	ydiff = (gImageHeight - imageHeight) / 2;
-	for (y = -ydiff; y < gImageHeight - ydiff; y++)
-		for (x = -xdiff; x < gImageWidth - xdiff; x++)
-		{
-			x_source = (int)(((Oy - y) - Cy) * sin(angle) + (x - Cx) * cos(angle) + Cx);
-			y_source = (int)(((Oy - y) - Cy) * cos(angle) - (x - Cx) * sin(angle) + Cy);
-
-			y_source = Oy - y_source;
-
-			if (x_source < 0 || x_source > imageWidth - 1 ||
-				y_source < 0 || y_source > imageHeight - 1)
-				gResultImg[y + ydiff][x + xdiff] = 255;
-			else
-				gResultImg[y + ydiff][x + xdiff] = inputImg[y_source][x_source];
-
-		}
-	// TODO: 여기에 구현 코드 추가.
-
-}
-
-
-void CImagePro2Doc::GeometryMirror()
-{
-
-	int y, x;
-
-	for (y = 0; y < imageHeight; y++)
-		for (x = 0; x < imageWidth; x++)
-			resultImg[y][x] = inputImg[y][imageWidth - 1 - x];
-	// TODO: 여기에 구현 코드 추가.
-}
-
-
-void CImagePro2Doc::GeometryFlip()
-{
-	int y, x;
-
-	for (y = 0; y < imageHeight; y++)
-		for (x = 0; x < imageWidth; x++)
-			resultImg[imageHeight-1-y][x] = inputImg[y][x];
-	// TODO: 여기에 구현 코드 추가.
+	//파일에서 읽어서 저장
+	for (i = 0; i < ImageHeight; i++)
+		ar.Read(inputimg2[i], ImageWidth * depth);
+
+	return;
 }

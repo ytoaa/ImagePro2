@@ -14,7 +14,7 @@ protected: // serialization에서만 만들어집니다.
 // 특성입니다.
 public:
 	CImagePro2Doc* GetDocument() const;
-	int viewMode;
+
 // 작업입니다.
 public:
 
@@ -24,9 +24,6 @@ public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 protected:
 	virtual void OnInitialUpdate(); // 생성 후 처음 호출되었습니다.
-	virtual BOOL OnPreparePrinting(CPrintInfo* pInfo);
-	virtual void OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo);
-	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
 
 // 구현입니다.
 public:
@@ -40,28 +37,43 @@ protected:
 
 // 생성된 메시지 맵 함수
 protected:
-	afx_msg void OnFilePrintPreview();
-	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
-	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void Onclear();
+	afx_msg void OnMenutest();
+	afx_msg void OnPixeladd();
+	afx_msg void OnPixelsub();
+	afx_msg void OnPixeldiv();
+	afx_msg void OnPixelmul();
+	afx_msg void OnPixelHistoeq();
+	afx_msg void OnPixelstr();
+	afx_msg void OnPixelbinarization();
+	afx_msg void OnPixeltwoimageadd();
+	void LoadTwoImage();
+	afx_msg void OnPixelimagesub();
+	afx_msg void OnRegionSharpening();
 	void convolve(unsigned char** inimg, unsigned char** outimg, int cols, int rows, float mask[][3], int bias, int depth);
-	afx_msg void Ondurty();
-	afx_msg void Onembo();
-	afx_msg void OnRegionSobel2();
-	afx_msg void OnRegionMedian();
-	afx_msg void OnErosion();
-	afx_msg void OnDilation();
-	afx_msg void OnOpening();
-	afx_msg void OnClosing();
+	afx_msg void OnRegionSmoothing();
+	afx_msg void OnRegionEmbossing();
+	afx_msg void OnRegionPrewit();
+	afx_msg void OnRegionRoberts();
+	afx_msg void OnRegionSobel();
+	afx_msg void OnRegionEverageFlitering();
+	afx_msg void OnRegionMedianfiltering();
+	
+	
 	afx_msg void OnGeometryZoominPixelCopy();
-	afx_msg void OnGeometryZoominInterpolation();
-	afx_msg void OnGeometryZoominSubsampling();
-	afx_msg void OnGeometryZoominAvg();
-	afx_msg void OnGeometryRotate();
-	afx_msg void OnGeometryMirror();
-	afx_msg void OnGeometryFlip();
+	afx_msg void OnMopologycolortogray();
+	afx_msg void OnMopologybinarization();
+	afx_msg void OnMopologyerosion();
+	afx_msg void OnMopologydilation();
+	afx_msg void OnMopologyopenning();
+	afx_msg void OnMopologyclosing();
+	void CopyResultToInput();
+	afx_msg void OnGeometryZoominBinuerinterpolation();
+	afx_msg void OnGeometryZoomoutSubsampling();
+	afx_msg void OnGeometryZoomoutMeanSub();
+	afx_msg void OnGeometryZoomoutAvg();
+	afx_msg void OnGeometryRotation();
 };
 
 #ifndef _DEBUG  // ImagePro2View.cpp의 디버그 버전
