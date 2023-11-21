@@ -176,44 +176,83 @@ int CImagePro2Doc::LoadImageFile(CArchive& ar)
 		char type[16], buf[256];
 		CFile* fp = ar.GetFile();
 		CString fname = fp->GetFilePath();
+		if (!strcmp(strchr(fname, '.'), ".bmp") || !strcmp(strchr(fname, '.'), ".BMP")) {
+			BITMAPFILEHEADER bf;
+			BITMAPINFOHEADER bi;
 
+			fp->Read(&bf, sizeof(BITMAPFILEHEADER));
+			fp->Read(&bi, sizeof(BITMAPINFOHEADER));
+
+			ImageWidth = bi.biWidth;
+			ImageHeight = bi.biHeight;
+			depth = bi.biBitCount / 8;
+
+			if (depth != 1 && depth != 3 && depth != 4) {
+				AfxMessageBox("지원하지 않는 BMP 파일 형식입니다.");
+				return 0;
+			}
+			if (depth == 4) {
+				depth = 3;  // 4-byte BMP images are typically RGBA, convert to RGB
+			}
+
+			// BMP 이미지 데이터는 아래에서 위로 저장되므로 뒤집어서 읽어야 함
+			inputimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
+			resultimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
+
+			int rowSize = ((ImageWidth * depth + 3) / 4) * 4;  // Adjust for padding
+
+			for (int i = 0; i < ImageHeight; i++) {
+				inputimg[i] = (unsigned char*)malloc(rowSize);
+				resultimg[i] = (unsigned char*)malloc(rowSize);
+				fp->Seek(bf.bfOffBits + (ImageHeight - i - 1) * rowSize, CFile::begin);
+				fp->Read(inputimg[i], rowSize);
+
+				// BGR to RGB
+				for (int j = 0; j < ImageWidth * depth; j += depth) {
+					unsigned char temp = inputimg[i][j];
+					inputimg[i][j] = inputimg[i][j + 2];
+					inputimg[i][j + 2] = temp;
+				}
+			}
+		}
 		//strcmp(strchr(fname, '.'), ".ppm");	// == 0 => 확장자가 ppm
-		if (!strcmp(strchr(fname, '.'), ".ppm") || !strcmp(strchr(fname, '.'), ".PPM") ||
-			!strcmp(strchr(fname, '.'), ".pgm") || !strcmp(strchr(fname, '.'), ".PGM")) {
+		else {
+			if (!strcmp(strchr(fname, '.'), ".ppm") || !strcmp(strchr(fname, '.'), ".PPM") ||
+				!strcmp(strchr(fname, '.'), ".pgm") || !strcmp(strchr(fname, '.'), ".PGM")) {
 
-			ar.ReadString(type, 15);
+				ar.ReadString(type, 15);
 
-			do {
-				ar.ReadString(buf, 255);
-			} while (buf[0] == '#');
-			sscanf(buf, "%d %d", &ImageWidth, &ImageHeight);
+				do {
+					ar.ReadString(buf, 255);
+				} while (buf[0] == '#');
+				sscanf(buf, "%d %d", &ImageWidth, &ImageHeight);
 
-			do {
-				ar.ReadString(buf, 255);
-			} while (buf[0] == '#');
-			sscanf(buf, "%d", &maxValue);
+				do {
+					ar.ReadString(buf, 255);
+				} while (buf[0] == '#');
+				sscanf(buf, "%d", &maxValue);
 
-			if (!strcmp(type, "P5")) depth = 1;
-			else depth = 3;
+				if (!strcmp(type, "P5")) depth = 1;
+				else depth = 3;
+			}
+			else if (!strcmp(strchr(fname, '.'), ".raw") || !strcmp(strchr(fname, '.'), ".RAW")) {
+				ImageWidth = 256;
+				ImageHeight = 256;
+				depth = 1;
+			}
+
+			//메모리 할당
+			inputimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
+			resultimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
+			for (i = 0; i < ImageHeight; i++) {
+				inputimg[i] = (unsigned char*)malloc(ImageWidth * depth);
+				resultimg[i] = (unsigned char*)malloc(ImageWidth * depth);
+			}
+
+			//파일에서 읽어서 저장
+			for (i = 0; i < ImageHeight; i++)
+				ar.Read(inputimg[i], ImageWidth * depth);
 		}
-		else if (!strcmp(strchr(fname, '.'), ".raw") || !strcmp(strchr(fname, '.'), ".RAW")) {
-			ImageWidth = 256;
-			ImageHeight = 256;
-			depth = 1;
-		}
-
-		//메모리 할당
-		inputimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
-		resultimg = (unsigned char**)malloc(ImageHeight * sizeof(unsigned char*));
-		for (i = 0; i < ImageHeight; i++) {
-			inputimg[i] = (unsigned char*)malloc(ImageWidth * depth);
-			resultimg[i] = (unsigned char*)malloc(ImageWidth * depth);
-		}
-
-		//파일에서 읽어서 저장
-		for (i = 0; i < ImageHeight; i++)
-			ar.Read(inputimg[i], ImageWidth * depth);
-
 		return 0;
 	}
 }

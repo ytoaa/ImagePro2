@@ -12,6 +12,7 @@
 
 #include "ImagePro2Doc.h"
 #include "ImagePro2View.h"
+#include "CinputDig.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -54,6 +55,9 @@ ON_COMMAND(ID_GEOMETRY_ZOOMOUT_SUBSAMPLING, &CImagePro2View::OnGeometryZoomoutSu
 ON_COMMAND(ID_GEOMETRY_ZOOMOUT_MEAN_SUB, &CImagePro2View::OnGeometryZoomoutMeanSub)
 ON_COMMAND(ID_GEOMETRY_ZOOMOUT_AVG, &CImagePro2View::OnGeometryZoomoutAvg)
 ON_COMMAND(ID_GEOMETRY_ROTATION, &CImagePro2View::OnGeometryRotation)
+ON_COMMAND(ID_GEOMETRY_MIRROR, &CImagePro2View::OnGeometryMirror)
+ON_COMMAND(ID_GEOMETRY_FLIP, &CImagePro2View::OnGeometryFlip)
+ON_COMMAND(ID_GEOMETRY_WARPING, &CImagePro2View::OnGeometryWarping)
 END_MESSAGE_MAP()
 
 // CImagePro2View 생성/소멸
@@ -1314,9 +1318,10 @@ void CImagePro2View::OnGeometryZoomoutSubsampling()
 	void CImagePro2View::OnGeometryRotation()
 	{
 		CImagePro2Doc* pDoc = GetDocument();
-		int x, y, i, j;
+		CinputDig angleinput;
+		int x, y, i, j,angle;
 
-		int angle = 30; //degree
+		//int angle = 30; //degree
 		float radian;
 		int Cx, Cy, Oy;
 		int xdiff, ydiff;
@@ -1325,7 +1330,15 @@ void CImagePro2View::OnGeometryZoomoutSubsampling()
 			for (i = 0; i < pDoc->gImageHeight; i++) free(pDoc->gresultimg[i]);
 			free(pDoc->gresultimg);
 		}
-		radian = 2 * PI / 360 * angle;
+		//angleinput.DoModal();
+		if (angleinput.DoModal() != IDOK) {
+			// User pressed Cancel or closed the dialog, return without processing
+			angle = 30;
+			//return;
+		}
+		else 
+			angle = angleinput.minputdig;
+		radian = PI / 180 * angle;
 		pDoc->gImageWidth = pDoc->ImageHeight * fabs(cos(PI / 2 - radian)) + pDoc->ImageWidth * fabs(cos(radian));
 		pDoc->gImageHeight = pDoc->ImageHeight * fabs(cos(radian)) + pDoc->ImageWidth * fabs(cos(PI / 2 - radian));
 
@@ -1341,39 +1354,178 @@ void CImagePro2View::OnGeometryZoomoutSubsampling()
 		xdiff = (pDoc->gImageWidth - pDoc->ImageWidth) / 2;
 		ydiff = (pDoc->gImageHeight - pDoc->ImageHeight) / 2;
 
-		if (pDoc->depth == 1) {
+		
 			for (y = -ydiff; y < pDoc->gImageHeight - ydiff; y++)
 				for (x = -xdiff; x < pDoc->gImageWidth - xdiff; x++) {
-					x_source = ((Oy - y) - Cy) * sin(radian) + (x - Cx) * cos(radian) + Cx;
-					y_source = Oy - (((Oy - y) - Cy) * cos(radian) - (x - Cx) * sin(radian) + Cy);
+					x_source = (int)(((Oy - y) - Cy) * sin(radian) + (x - Cx) * cos(radian) + Cx);
+					y_source = (int)(((Oy - y) - Cy) * cos(radian) - (x - Cx) * sin(radian) + Cy);
 
 					y_source = Oy - y_source;
-
-					if (x_source < 0 || x_source > pDoc->ImageWidth - 1 ||
-						y_source < 0 || y_source > pDoc->ImageHeight - 1)
-					{
-						pDoc->gresultimg[y + ydiff][x + xdiff] = 255;
+					if (pDoc->depth == 1) {
+						if (x_source < 0 || x_source > pDoc->ImageWidth - 1 ||
+							y_source < 0 || y_source > pDoc->ImageHeight - 1)
+						{
+							pDoc->gresultimg[y + ydiff][x + xdiff] = 255;
+						}
+						else {
+							pDoc->gresultimg[y + ydiff][x + xdiff] = pDoc->inputimg[y_source][x_source];
+						}
 					}
 					else {
-						pDoc->gresultimg[y + ydiff][x + xdiff] = pDoc->inputimg[y_source][x_source];
+						if (x_source < 0 || x_source > pDoc->ImageWidth - 1 ||
+							y_source < 0 || y_source > pDoc->ImageHeight - 1) {
+							pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 0] = 255;
+							pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 1] = 255;
+							pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 2] = 255;
+						}
+						else {
+							pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 0] = pDoc->inputimg[y_source][3 * x_source + 0];
+							pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 1] = pDoc->inputimg[y_source][3 * x_source + 1];
+							pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 2] = pDoc->inputimg[y_source][3 * x_source + 2];
+						}
 					}
-				}
 		}
-		else {
-			if (x_source < 0 || x_source > pDoc->ImageWidth - 1 ||
-				y_source < 0 || y_source > pDoc->ImageHeight - 1) {
-				pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 0] = 255;
-				pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 1] = 255;
-				pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 2] = 255;
-			}
-			else {
-				pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 0] = pDoc->inputimg[y_source][3 * x_source + 0];
-				pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 1] = pDoc->inputimg[y_source][3 * x_source + 1];
-				pDoc->gresultimg[y + ydiff][3 * (x + xdiff) + 2] = pDoc->inputimg[y_source][3 * x_source + 2];
-			}
 		
-		}
 		Invalidate();
 	}
 
 	
+
+
+	void CImagePro2View::OnGeometryMirror()
+	{
+		CImagePro2Doc* pDoc = GetDocument();
+		int y, x;
+
+		for (y = 0; y < pDoc->ImageHeight; y++)
+			for (x = 0; x < pDoc->ImageWidth; x++)
+				if (pDoc->depth == 1) {
+					pDoc->resultimg[y][x] = pDoc->inputimg[y][pDoc->ImageWidth - 1 - x];
+				}
+				else {
+					pDoc->resultimg[y][3 * x + 0] = pDoc->inputimg[y][3 * (pDoc->ImageWidth - 1 - x) + 0];
+					pDoc->resultimg[y][3 * x + 1] = pDoc->inputimg[y][3 * (pDoc->ImageWidth - 1 - x) + 1];
+					pDoc->resultimg[y][3 * x + 2] = pDoc->inputimg[y][3 * (pDoc->ImageWidth - 1 - x) + 2];
+				}
+		// TODO: 여기에 명령 처리기 코드를 추가합니다.
+		Invalidate();
+	}
+
+
+	void CImagePro2View::OnGeometryFlip()
+	{
+		CImagePro2Doc* pDoc = GetDocument();
+		int y, x;
+
+		for (y = 0; y < pDoc->ImageHeight; y++)
+			for (x = 0; x < pDoc->ImageWidth; x++)
+				if (pDoc->depth == 1) {
+					pDoc->resultimg[pDoc->ImageHeight - 1 - y][x] = pDoc->inputimg[y][x];
+				}
+				else {
+					pDoc->resultimg[pDoc->ImageHeight - 1 - y][3 * x + 0] = pDoc->inputimg[y][3 * x + 0];
+					pDoc->resultimg[pDoc->ImageHeight - 1 - y][3 * x + 1] = pDoc->inputimg[y][3 * x + 1];
+					pDoc->resultimg[pDoc->ImageHeight - 1 - y][3 * x + 2] = pDoc->inputimg[y][3 * x + 2];
+				}
+		// TODO: 여기에 명령 처리기 코드를 추가합니다.
+		Invalidate();
+	}
+
+	typedef struct
+	{
+		int Px;
+		int Py;
+		int Qx;
+		int Qy;
+	} control_line;
+
+	void CImagePro2View::OnGeometryWarping()
+	{
+		CImagePro2Doc* pDoc = GetDocument();
+		control_line source_lines[5] = { {0,0,pDoc->ImageWidth - 1,0},{pDoc->ImageWidth - 1,0,pDoc->ImageWidth - 1,pDoc->ImageHeight - 1},{pDoc->ImageWidth - 1,pDoc->ImageHeight - 1,0,pDoc->ImageHeight - 1},{0,pDoc->ImageHeight - 1,0,0},{10,30,50,90} };
+		control_line dest_lines[5] = { {0,0,pDoc->ImageWidth - 1,0},{pDoc->ImageWidth - 1,0,pDoc->ImageWidth - 1,pDoc->ImageHeight - 1},{pDoc->ImageWidth - 1,pDoc->ImageHeight - 1,0,pDoc->ImageHeight - 1},{0,pDoc->ImageHeight - 1,0,0},{200,90,10,5} };
+		// TODO: 여기에 명령 처리기 코드를 추가합니다.
+		double u;
+		double h;
+		double d;
+		double tx, ty;
+		double xp, yp;
+
+		double weight;
+		double totalWeight;
+		double a = 0.001;
+		double b = 2.0;
+		double p = 0.75;
+
+		int x1, x2, y1, y2;
+		int src_x1, src_y1, src_x2, src_y2;
+		double src_line_length, dest_line_length;
+
+		int num_lines = 5;
+		int line;
+		int x, y;
+		int source_x, source_y;
+		int last_row, last_col;
+		last_row = pDoc->ImageHeight - 1;
+		last_col = pDoc->ImageWidth - 1;
+
+		for (y = 0; y < pDoc->ImageHeight; y++)
+		{
+			for (x = 0; x < pDoc->ImageWidth; x++)
+			{
+				totalWeight = 0.0;
+				tx = 0.0;
+				ty = 0.0;
+
+				for (line = 0; line < num_lines; line++)
+				{
+					x1 = dest_lines[line].Px;
+					y1 = dest_lines[line].Py;
+					x2 = dest_lines[line].Qx;
+					y2 = dest_lines[line].Qy;
+
+					dest_line_length = sqrt((double)((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)));
+
+					u = (double)((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) /
+						(double)((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+					h = (double)((y - y1) * (x2 - x1) - (x - x1) * (y2 - y1)) / dest_line_length;
+
+					if (u < 0) d = sqrt((double)((x - x1) * (x - x1) + (y - y1) * (y - y1)));
+					else if (u > 1) d = sqrt((double)((x - x2) * (x - x2) + (y - y2) * (y - y2)));
+					else d = fabs(h);
+
+					src_x1 = source_lines[line].Px;
+					src_y1 = source_lines[line].Py;
+					src_x2 = source_lines[line].Qx;
+					src_y2 = source_lines[line].Qy;
+					src_line_length = sqrt((double)((src_x2 - src_x1) * (src_x2 - src_x1) + (src_y2 - src_y1) * (src_y2 - src_y1)));
+					xp = src_x1 + u * (src_x2 - src_x1) - h * (src_y2 - src_y1) / src_line_length;
+					yp = src_y1 + u * (src_y2 - src_y1) + h * (src_x2 - src_x1) / src_line_length;
+
+					weight = pow((pow((double)(dest_line_length), p) / (a + d)), b);
+
+					tx += (xp - x) * weight;
+					ty += (yp - y) * weight;
+					totalWeight += weight;
+				}
+				source_x = x + (int)(tx / totalWeight + 0.5);
+				source_y = y + (int)(ty / totalWeight + 0.5);
+
+				if (source_x < 0) source_x = 0;
+				if (source_x > last_col) source_x = last_col;
+				if (source_y < 0) source_y = 0;
+				if (source_y > last_row) source_y = last_row;
+
+				
+				if (pDoc->depth == 1) {
+					pDoc->resultimg[y][x] = pDoc->inputimg[source_y][source_x];
+				}
+				else {
+					pDoc->resultimg[y][3 * x + 0] = pDoc->inputimg[source_y][3 * source_x + 0];
+					pDoc->resultimg[y][3 * x + 1] = pDoc->inputimg[source_y][3 * source_x + 1];
+					pDoc->resultimg[y][3 * x + 2] = pDoc->inputimg[source_y][3 * source_x + 2];
+				}
+			}
+		}
+		Invalidate();
+	}

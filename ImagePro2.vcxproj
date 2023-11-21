@@ -184,6 +184,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ChildFrm.h" />
+    <ClInclude Include="CinputDig.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImagePro2.h" />
     <ClInclude Include="ImagePro2Doc.h" />
@@ -195,6 +196,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChildFrm.cpp" />
+    <ClCompile Include="CinputDig.cpp" />
     <ClCompile Include="ImagePro2.cpp" />
     <ClCompile Include="ImagePro2Doc.cpp" />
     <ClCompile Include="ImagePro2View.cpp" />
