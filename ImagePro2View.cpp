@@ -319,12 +319,28 @@ void CImagePro2View::OnPixeldiv()
 	for (y = 0; y < pDoc->ImageHeight; y++)
 		for (x = 0; x < pDoc->ImageWidth; x++)
 		{
-			value = pDoc->inputimg[y][x] / 1.5;
-			if (value > 255)value = 255;
-			else if (value < 0)value = 0;
+			if (pDoc->depth == 1) {
+				value = pDoc->inputimg[y][x] / 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][x] = value;
+			}
+			else {
+				value = pDoc->inputimg[y][3 * x + 0] / 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 0] = value;
 
+				value = pDoc->inputimg[y][3 * x + 1] / 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 1] = value;
 
-			pDoc->resultimg[y][x] = value;
+				value = pDoc->inputimg[y][3 * x + 2] / 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 2] = value;
+			}
 		}
 	Invalidate();
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
@@ -340,12 +356,28 @@ void CImagePro2View::OnPixelmul()
 	for (y = 0; y < pDoc->ImageHeight; y++)
 		for (x = 0; x < pDoc->ImageWidth; x++)
 		{
-			value = pDoc->inputimg[y][x] *1.5;
-			if (value > 255)value = 255;
-			else if (value < 0)value = 0;
+			if (pDoc->depth == 1) {
+				value = pDoc->inputimg[y][x] * 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][x] = value;
+			}
+			else {
+				value = pDoc->inputimg[y][3 * x + 0] * 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 0] = value;
 
+				value = pDoc->inputimg[y][3 * x + 1] * 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 1] = value;
 
-			pDoc->resultimg[y][x] = value;
+				value = pDoc->inputimg[y][3 * x + 2] * 1.2;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 2] = value;
+			}
 		}
 	Invalidate();
 
@@ -916,34 +948,84 @@ void CImagePro2View::OnRegionEverageFlitering()
 void CImagePro2View::OnRegionMedianfiltering()
 {
 	CImagePro2Doc* pDoc = GetDocument();
-	int x, y,i,j,temp;
-	int n[9];
-	for (y = 1; y < pDoc->ImageHeight-1; y++)
-		for (x = 1; x < pDoc->ImageWidth-1; x++) {
-			n[0] = pDoc->inputimg[y - 1][x - 1];
-			n[1] = pDoc->inputimg[y - 1][x];
-			n[2] = pDoc->inputimg[y - 1][x+1];
-			n[3] = pDoc->inputimg[y ][x-1];
-			n[4] = pDoc->inputimg[y ][x];
-			n[5] = pDoc->inputimg[y ][x+1];
-			n[6] = pDoc->inputimg[y + 1][x - 1];
-			n[7] = pDoc->inputimg[y + 1][x];
-			n[8] = pDoc->inputimg[y + 1][x + 1];
-			//버블정렬 (오름차순)
-			for(i=8;i>0;i--)
-				for (j = 0; j < 8; j++) {
-					if (n[j] > n[j + 1]) {
+	int x, y, i, j, temp;
 
-						temp = n[j + 1];
-						n[j + 1] = n[j];
-						n[j] = temp;
+	if (pDoc->depth == 1) {
+		// 흑백 이미지의 경우
+		for (y = 1; y < pDoc->ImageHeight - 1; y++)
+			for (x = 1; x < pDoc->ImageWidth - 1; x++) {
+				int n[9] = {
+					pDoc->inputimg[y - 1][x - 1], pDoc->inputimg[y - 1][x], pDoc->inputimg[y - 1][x + 1],
+					pDoc->inputimg[y][x - 1], pDoc->inputimg[y][x], pDoc->inputimg[y][x + 1],
+					pDoc->inputimg[y + 1][x - 1], pDoc->inputimg[y + 1][x], pDoc->inputimg[y + 1][x + 1]
+				};
 
+				// 버블 정렬을 사용하여 중앙값 계산
+				for (i = 8; i > 0; i--)
+					for (j = 0; j < 8; j++)
+						if (n[j] > n[j + 1]) {
+							temp = n[j + 1];
+							n[j + 1] = n[j];
+							n[j] = temp;
 						}
-				}
-			pDoc->resultimg[y][x] = n[4];
-		}
+
+				// 중앙값을 결과 이미지에 저장
+				pDoc->resultimg[y][x] = n[4];
+			}
+	}
+	else {
+		// 컬러 이미지의 경우
+		for (y = 1; y < pDoc->ImageHeight - 1; y++)
+			for (x = 1; x < pDoc->ImageWidth - 1; x++) {
+				// 각 채널에 대해 주변 픽셀 값을 저장
+				int n_r[9] = {
+					pDoc->inputimg[y - 1][3 * (x - 1) + 0], pDoc->inputimg[y - 1][3 * x + 0], pDoc->inputimg[y - 1][3 * (x + 1) + 0],
+					pDoc->inputimg[y][3 * (x - 1) + 0], pDoc->inputimg[y][3 * x + 0], pDoc->inputimg[y][3 * (x + 1) + 0],
+					pDoc->inputimg[y + 1][3 * (x - 1) + 0], pDoc->inputimg[y + 1][3 * x + 0], pDoc->inputimg[y + 1][3 * (x + 1) + 0]
+				};
+
+				int n_g[9] = {
+					pDoc->inputimg[y - 1][3 * (x - 1) + 1], pDoc->inputimg[y - 1][3 * x + 1], pDoc->inputimg[y - 1][3 * (x + 1) + 1],
+					pDoc->inputimg[y][3 * (x - 1) + 1], pDoc->inputimg[y][3 * x + 1], pDoc->inputimg[y][3 * (x + 1) + 1],
+					pDoc->inputimg[y + 1][3 * (x - 1) + 1], pDoc->inputimg[y + 1][3 * x + 1], pDoc->inputimg[y + 1][3 * (x + 1) + 1]
+				};
+
+				int n_b[9] = {
+					pDoc->inputimg[y - 1][3 * (x - 1) + 2], pDoc->inputimg[y - 1][3 * x + 2], pDoc->inputimg[y - 1][3 * (x + 1) + 2],
+					pDoc->inputimg[y][3 * (x - 1) + 2], pDoc->inputimg[y][3 * x + 2], pDoc->inputimg[y][3 * (x + 1) + 2],
+					pDoc->inputimg[y + 1][3 * (x - 1) + 2], pDoc->inputimg[y + 1][3 * x + 2], pDoc->inputimg[y + 1][3 * (x + 1) + 2]
+				};
+
+				// 각 채널에 대해 버블 정렬을 사용하여 중앙값 계산
+				for (i = 8; i > 0; i--)
+					for (j = 0; j < 8; j++) {
+						if (n_r[j] > n_r[j + 1]) {
+							temp = n_r[j + 1];
+							n_r[j + 1] = n_r[j];
+							n_r[j] = temp;
+						}
+						if (n_g[j] > n_g[j + 1]) {
+							temp = n_g[j + 1];
+							n_g[j + 1] = n_g[j];
+							n_g[j] = temp;
+						}
+						if (n_b[j] > n_b[j + 1]) {
+							temp = n_b[j + 1];
+							n_b[j + 1] = n_b[j];
+							n_b[j] = temp;
+						}
+					}
+
+				// 중앙값을 결과 이미지에 저장
+				pDoc->resultimg[y][3 * x + 0] = n_r[4];
+				pDoc->resultimg[y][3 * x + 1] = n_g[4];
+				pDoc->resultimg[y][3 * x + 2] = n_b[4];
+			}
+	}
+
 	Invalidate();
 }
+
 
 void CImagePro2View::OnMopologycolortogray()
 {
@@ -1217,8 +1299,8 @@ void CImagePro2View::OnGeometryZoominBinuerinterpolation()
 	CImagePro2Doc* pDoc = GetDocument();
 	int x, y, i;
 
-	float xscale = 2.1;
-	float yscale = 1.5;
+	float xscale = 3;
+	float yscale = 3;
 	float src_x, src_y;
 	float alpha, beta;
 
@@ -1243,14 +1325,11 @@ void CImagePro2View::OnGeometryZoominBinuerinterpolation()
 	for (y = 0; y < pDoc->gImageHeight; y++) {
 		for (x = 0; x < pDoc->gImageWidth; x++) 
 		{
-			src_x = x / xscale;
-			src_y = y / yscale;
-			/*
-			alpha = src_x - (int)src_x;
-			beta  =	src_y	 - (int)src_y;*/
-
-			/*Ax = (int)src_x;
-			Ay = (int)src_y;*/
+			// 픽셀좌표연산
+			src_x = x / (float)xscale;
+			src_y = y / (float)yscale;
+			alpha = src_x - x / xscale;
+			beta = src_y - y / yscale;
 			Ax = src_x;
 			Ay = src_y;
 			Bx = Ax + 1;
@@ -1427,7 +1506,7 @@ void CImagePro2View::OnGeometryZoomoutSubsampling()
 		//angleinput.DoModal();
 		if (angleinput.DoModal() != IDOK) {
 			// User pressed Cancel or closed the dialog, return without processing
-			angle = 30;
+			angle = 120;
 			//return;
 		}
 		else 
