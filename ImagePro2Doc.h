@@ -62,4 +62,5 @@ public:
 
 	int LoadImageFile();
 	void LoadSecondImageFile();
+
 };

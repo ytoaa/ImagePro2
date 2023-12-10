@@ -13,9 +13,11 @@
 #include "ImagePro2Doc.h"
 #include "ImagePro2View.h"
 #include "CinputDig.h"
+#include <Vfw.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#define AVI_FILE	16
 #endif
 
 
@@ -58,6 +60,7 @@ ON_COMMAND(ID_GEOMETRY_ROTATION, &CImagePro2View::OnGeometryRotation)
 ON_COMMAND(ID_GEOMETRY_MIRROR, &CImagePro2View::OnGeometryMirror)
 ON_COMMAND(ID_GEOMETRY_FLIP, &CImagePro2View::OnGeometryFlip)
 ON_COMMAND(ID_GEOMETRY_WARPING, &CImagePro2View::OnGeometryWarping)
+ON_COMMAND(ID_AVI_VIEW, &CImagePro2View::OnAviView)
 END_MESSAGE_MAP()
 
 // CImagePro2View 생성/소멸
@@ -91,6 +94,49 @@ void CImagePro2View::OnDraw(CDC* pDC)
 
 	// TODO: 여기에 원시 데이터에 대한 그리기 코드를 추가합니다.
 	int x, y;
+	if (viewMode == AVI_FILE) {
+		LPBITMAPINFOHEADER pbmih;
+		PAVIFILE pavi;
+		PAVISTREAM pstm;
+		PGETFRAME pfrm;
+		AVIFILEINFO fi;
+		AVISTREAMINFO si;
+		int stm;
+		int frame;
+		int x, y;
+		unsigned char* image;
+		AVIFileInit();
+		AVIFileOpen(&pavi, AVIFileName, OF_READ | OF_SHARE_DENY_NONE, NULL);
+		AVIFileInfo(pavi, &fi, sizeof(AVIFILEINFO));
+
+		for (stm = 0; stm < fi.dwStreams; stm++) {
+			AVIFileGetStream(pavi, &pstm, 0, stm);
+			AVIStreamInfo(pstm, &si, sizeof(si));
+
+			if (si.fccType == streamtypeVIDEO) {
+				pfrm = AVIStreamGetFrameOpen(pstm, NULL);
+
+				for (frame = 0; frame < si.dwLength; frame++) {
+					pbmih = (LPBITMAPINFOHEADER)AVIStreamGetFrame(pfrm, frame);
+					if (!pbmih) continue;
+					image = (unsigned char*)((LPSTR)pbmih + (WORD)pbmih->biSize);
+
+					for (y = 0; y < fi.dwHeight; y++)
+						for (x = 0; x < fi.dwWidth; x++)
+							pDC->SetPixel(x, fi.dwHeight - y - 1, RGB(image[(y * fi.dwWidth + x) * 3 + 2], image[(y * fi.dwWidth + x) * 3 + 1
+							], image[(y * fi.dwWidth + x) * 3]));
+
+
+				}
+			}
+		}
+		AVIStreamGetFrameClose(pfrm);
+		AVIStreamRelease(pstm);
+		AVIFileRelease(pavi);
+		AVIFileExit();
+		return;
+
+	}
 	if (pDoc->inputimg != NULL)
 	{
 		if (pDoc->depth == 1) {
@@ -141,6 +187,7 @@ void CImagePro2View::OnDraw(CDC* pDC)
 					pDC->SetPixel( x, pDoc->ImageHeight + 20+y, RGB(pDoc->gresultimg[y][3 * x + 0], pDoc->gresultimg[y][3 * x + 1], pDoc->gresultimg[y][3 * x + 2]));
 		}
 	}
+	
 }
    
 
@@ -227,12 +274,59 @@ void CImagePro2View::OnPixeladd()
 
 void CImagePro2View::OnPixelsub()
 {
+	CImagePro2Doc* pDoc = GetDocument();
+	if (pDoc->inputimg == NULL)return;
+
+	int x, y, value;
+
+	for (y = 0; y < pDoc->ImageHeight; y++)
+		for (x = 0; x < pDoc->ImageWidth; x++)
+		{
+			if (pDoc->depth == 1) {
+				value = pDoc->inputimg[y][x] - 100;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][x] = value;
+			}
+			else {
+				value = pDoc->inputimg[y][3 * x + 0] - 100;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 0] = value;
+
+				value = pDoc->inputimg[y][3 * x + 1] - 100;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 1] = value;
+
+				value = pDoc->inputimg[y][3 * x + 2] - 100;
+				if (value > 255)value = 255;
+				else if (value < 0)value = 0;
+				pDoc->resultimg[y][3 * x + 2] = value;
+			}
+		}
+	Invalidate();
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
 }
 
 
 void CImagePro2View::OnPixeldiv()
 {
+	CImagePro2Doc* pDoc = GetDocument();
+
+	int x, y, value;
+
+	for (y = 0; y < pDoc->ImageHeight; y++)
+		for (x = 0; x < pDoc->ImageWidth; x++)
+		{
+			value = pDoc->inputimg[y][x] / 1.5;
+			if (value > 255)value = 255;
+			else if (value < 0)value = 0;
+
+
+			pDoc->resultimg[y][x] = value;
+		}
+	Invalidate();
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
 }
 
@@ -1528,4 +1622,18 @@ void CImagePro2View::OnGeometryZoomoutSubsampling()
 			}
 		}
 		Invalidate();
+	}
+
+
+	void CImagePro2View::OnAviView()
+	{
+		CFile file;
+		CFileDialog dlg(TRUE);
+
+		if (dlg.DoModal() == IDOK) {
+			strcpy_s(AVIFileName, dlg.GetPathName());
+			viewMode = AVI_FILE;
+		}
+		Invalidate(FALSE);
+		// TODO: 여기에 명령 처리기 코드를 추가합니다.
 	}

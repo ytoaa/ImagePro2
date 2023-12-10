@@ -307,3 +307,6 @@ void CImagePro2Doc::LoadSecondImageFile(CArchive& ar)
 
 	return;
 }
+
+
+

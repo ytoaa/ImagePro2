@@ -14,6 +14,8 @@ protected: // serialization에서만 만들어집니다.
 // 특성입니다.
 public:
 	CImagePro2Doc* GetDocument() const;
+	int viewMode;
+	char AVIFileName[256];
 
 // 작업입니다.
 public:
@@ -77,6 +79,7 @@ public:
 	afx_msg void OnGeometryMirror();
 	afx_msg void OnGeometryFlip();
 	afx_msg void OnGeometryWarping();
+	afx_msg void OnAviView();
 };
 
 #ifndef _DEBUG  // ImagePro2View.cpp의 디버그 버전
