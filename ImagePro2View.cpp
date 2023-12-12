@@ -95,46 +95,60 @@ void CImagePro2View::OnDraw(CDC* pDC)
 	// TODO: 여기에 원시 데이터에 대한 그리기 코드를 추가합니다.
 	int x, y;
 	if (viewMode == AVI_FILE) {
-		LPBITMAPINFOHEADER pbmih;
 		PAVIFILE pavi;
-		PAVISTREAM pstm;
-		PGETFRAME pfrm;
 		AVIFILEINFO fi;
-		AVISTREAMINFO si;
 		int stm;
+		PAVISTREAM pstm = NULL;
+		AVISTREAMINFO si;
+		PGETFRAME pfrm = NULL;
 		int frame;
-		int x, y;
+		LPBITMAPINFOHEADER pbmpih;
 		unsigned char* image;
+
+		int x, y;
+
 		AVIFileInit();
 		AVIFileOpen(&pavi, AVIFileName, OF_READ | OF_SHARE_DENY_NONE, NULL);
 		AVIFileInfo(pavi, &fi, sizeof(AVIFILEINFO));
 
-		for (stm = 0; stm < fi.dwStreams; stm++) {
+		for (stm = 0; stm < fi.dwStreams; stm++)
+		{
 			AVIFileGetStream(pavi, &pstm, 0, stm);
 			AVIStreamInfo(pstm, &si, sizeof(si));
-
-			if (si.fccType == streamtypeVIDEO) {
+			if (si.fccType == streamtypeVIDEO)
+			{
 				pfrm = AVIStreamGetFrameOpen(pstm, NULL);
+				for (frame = 0; frame < si.dwLength; frame++)
+				{
+					pbmpih = (LPBITMAPINFOHEADER)AVIStreamGetFrame(pfrm, frame);
+					if (!pbmpih)	continue;
 
-				for (frame = 0; frame < si.dwLength; frame++) {
-					pbmih = (LPBITMAPINFOHEADER)AVIStreamGetFrame(pfrm, frame);
-					if (!pbmih) continue;
-					image = (unsigned char*)((LPSTR)pbmih + (WORD)pbmih->biSize);
+					image = (unsigned char*)((LPSTR)pbmpih + (WORD)pbmpih->biSize);
 
-					for (y = 0; y < fi.dwHeight; y++)
+					/*
+					for(y=0;y<fi.dwHeight;y++)
 						for (x = 0; x < fi.dwWidth; x++)
-							pDC->SetPixel(x, fi.dwHeight - y - 1, RGB(image[(y * fi.dwWidth + x) * 3 + 2], image[(y * fi.dwWidth + x) * 3 + 1
-							], image[(y * fi.dwWidth + x) * 3]));
-
-
+						{
+							pDC->SetPixel(x, fi.dwHeight-1-y,
+								RGB(image[(y * fi.dwWidth + x) * 3 + 2],
+									image[(y * fi.dwWidth + x) * 3 + 1],
+									image[(y * fi.dwWidth + x) * 3 + 0]));
+						}
+					*/
+					pDC->SetStretchBltMode(COLORONCOLOR);
+					::SetDIBitsToDevice(pDC->GetSafeHdc(),
+						0, 0, fi.dwWidth, fi.dwHeight,
+						0, 0, 0, fi.dwWidth,
+						image, (BITMAPINFO*)pbmpih, DIB_RGB_COLORS);
+					Sleep(30);
 				}
+
 			}
 		}
 		AVIStreamGetFrameClose(pfrm);
 		AVIStreamRelease(pstm);
 		AVIFileRelease(pavi);
 		AVIFileExit();
-		return;
 
 	}
 	if (pDoc->inputimg != NULL)
